@@ -24,7 +24,7 @@ First non-blank line is the environment name. Subsequent lines may be `tag:<name
 
 ### Plugin options (passed via `_.envoke = { … }` in consumer `mise.toml`)
 
-`environment_file` (default `.envoke-env`), `config` (default `envoke.yaml`), `watch_files` (string or array; comma-split if string), `tools` (mise-level, not read by the plugin — set `true` so envoke itself resolves from the mise shim path).
+`environment_file` (default `.envoke-env`), `config` (default `envoke.yaml`), `fallback_environment` (optional; env name used when `environment_file` is missing — the file wins when both are defined; no tags/overrides are applied in fallback mode), `watch_files` (string or array; comma-split if string), `tools` (mise-level, not read by the plugin — set `true` so envoke itself resolves from the mise shim path).
 
 ### Caching
 

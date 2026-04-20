@@ -18,17 +18,24 @@ function PLUGIN:MiseEnv(ctx)
 
     local config = options.config or "envoke.yaml"
     local env_file = options.environment_file or ".envoke-env"
+    local fallback_environment = options.fallback_environment
 
     -- Watch both files unconditionally so mise picks them up once they appear.
     local watch_files = build_watch_files(options, config, env_file)
 
-    if not file.exists(env_file) then
+    local env_descriptor
+    if file.exists(env_file) then
+        env_descriptor = parse_env_file(env_file)
+    elseif fallback_environment and fallback_environment ~= "" then
+        log.debug("[envoke] " .. env_file .. " not found; using fallback_environment = " .. fallback_environment)
+        env_descriptor = { environment = fallback_environment, tags = {}, overrides = {} }
+    else
         log.warn(
             "[envoke] environment file not found: "
                 .. env_file
                 .. " — skipping (create it with `echo <env> > "
                 .. env_file
-                .. "` to activate)"
+                .. "` or set `fallback_environment` in mise.toml to activate)"
         )
         return { env = {}, cacheable = true, watch_files = watch_files }
     end
@@ -38,22 +45,20 @@ function PLUGIN:MiseEnv(ctx)
         return { env = {}, cacheable = true, watch_files = watch_files }
     end
 
-    local env_file_parsed = parse_env_file(env_file)
-
     local command = "envoke"
         .. " "
-        .. shell_quote(env_file_parsed.environment)
+        .. shell_quote(env_descriptor.environment)
         .. " --template "
         .. shell_quote(template_path)
         .. " --config "
         .. shell_quote(config)
         .. " --quiet"
 
-    for _, tag in ipairs(env_file_parsed.tags) do
+    for _, tag in ipairs(env_descriptor.tags) do
         command = command .. " --tag " .. shell_quote(tag)
     end
 
-    for _, override in ipairs(env_file_parsed.overrides) do
+    for _, override in ipairs(env_descriptor.overrides) do
         command = command .. " --override " .. shell_quote(override)
     end
 
@@ -89,7 +94,7 @@ function PLUGIN:MiseEnv(ctx)
         table.insert(env_vars, { key = key, value = value })
     end
 
-    log.info("Loaded " .. #env_vars .. " variables from envoke (" .. env_file_parsed.environment .. ")")
+    log.info("Loaded " .. #env_vars .. " variables from envoke (" .. env_descriptor.environment .. ")")
 
     return {
         env = env_vars,
